@@ -1,6 +1,6 @@
 # LA's BEST USC 
 
-I participated in the Los Angeles Biostatistics Education Program at the University of Southern California [(LA's BEST @ USC)] (https://lasbest.usc.edu/about/) during the summer of 2021.
+I participated in the Los Angeles Biostatistics Education Program at the University of Southern California [LA's BEST @ USC] (https://lasbest.usc.edu/about/) during the summer of 2021.
 
 Through this program, I recieved formal training in biostatistics from experts at USC. 
 
