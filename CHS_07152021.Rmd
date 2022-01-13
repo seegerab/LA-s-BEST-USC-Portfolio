@@ -1,0 +1,81 @@
+---
+title: "CHS - Model Revisions"
+author: "Abigail Seeger"
+date: "7/1/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r warning = FALSE, message = FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+Read in the data. 
+
+```{r}
+CHS_data <- read.csv("~/LA's BEST/CHS_Poster/CHS_cohortE_final_subset.csv")
+```
+
+Convert the necessary columns to be factors.
+
+```{r}
+CHS_data$asthma <- factor(CHS_data$asthma, levels = c(0, 1), labels = c("No Asthma", "Asthma"))
+CHS_data$hisp <- factor(CHS_data$hisp)
+CHS_data$townabbr <- factor(CHS_data$townabbr)
+CHS_data$sex <- factor(CHS_data$male, levels = c(0, 1), labels = c("Female", "Male"))
+CHS_data$educ <- factor(CHS_data$educ, levels = c(1, 2, 3, 4, 5), labels = c("No HS", "HS", "Some College", "4-Year Degree", "Some post-graduate"))
+CHS_data$wheeze <- factor(CHS_data$wheeze, levels = c(0, 1), labels = c("No Wheeze", "Wheeze"))
+CHS_data$obesity <- factor(CHS_data$obesity, levels = c(TRUE, FALSE), labels = c("Obese", "Not Obese"))
+```
+
+Here is our initial final model:
+
+```{r}
+final_model <- lm(fev1 ~ factor(male) + age + factor(obesity)  + factor(townabbr) + pm25 + factor(educ) + factor(race), data = CHS_data)
+final_model
+```
+
+Following Dr. Siegmund's advice, remove "townabbr" as a factor from the model:
+
+Now sulfate is significant, but pm25 isn't. The direction makes sense now. 
+So, we need to make a map of sulfate to include instead of pm25. 
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + sulfate + factor(educ) + factor(race), data = CHS_data)%>%summary()
+## Hisp data
+lm(fev1 ~ factor(male) + age + factor(obesity) + sulfate + factor(educ) + factor(race), data = filter(CHS_data, hisp == "Hispanic"))%>%summary()
+### Non-hisp data
+lm(fev1 ~ factor(male) + age + factor(obesity) + sulfate + factor(educ) + factor(race), data = filter(CHS_data, hisp == "Non-Hispanic"))%>%summary()
+```
+Now, here was our final asthma model:
+
+```{r}
+final_model <- glm(asthma ~ male + age + obesity + race + townabbr + educ  + ec, family = "binomial", data = CHS_data)
+```
+
+Per Dr. Siegmund's advice, remove townabbr.
+
+```{r}
+### Full model
+glm(asthma ~ as.factor(male) + age + as.factor(obesity) + as.factor(race)  + ec + as.factor(educ) , family = "binomial", data = CHS_data)%>%summary()
+### Hispanic model
+glm(asthma ~ as.factor(male) + age + as.factor(obesity) + as.factor(race)  + ec + as.factor(educ) , family = "binomial", data = filter(CHS_data, hisp == "Hispanic"))%>%summary()
+### Non-Hispanic model
+glm(asthma ~ as.factor(male) + age + as.factor(obesity) + as.factor(race)  + ec + as.factor(educ) , family = "binomial", data = filter(CHS_data, hisp == "Non-Hispanic"))%>%summary()
+```
+
+
+```{r}
+tiff("ModelDiagnostics2.tiff", units="in", width=5, height=5, res=500)
+par(mfrow = c(2,2))
+plot(lm(fev1 ~ factor(male) + age + factor(obesity) + sulfate + factor(educ) + factor(race), data = CHS_data))
+dev.off()
+```
+

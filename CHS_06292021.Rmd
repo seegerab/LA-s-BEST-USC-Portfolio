@@ -1,0 +1,222 @@
+---
+title: "CHS Regression and Logistic Regression"
+author: "Abigail Seeger"
+date: "6/29/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r warning = FALSE, message = FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+Read in the data. 
+
+```{r}
+CHS_data <- read.csv("~/LA's BEST/CHS_Poster/CHS_cohortE_final_subset.csv")
+```
+
+Based on previous investigations, we have chosen to include the following predictors in the model:
+
+This is the "base line" model with the predictors that are added no matter what. 
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race), data = CHS_data)%>%summary()
+```
+
+Now, try adding the pollutants one by one:
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + nitrate, data = CHS_data)%>%summary()
+
+```
+
+Nitrate is marginally significant. Don't include in the model. 
+
+Now, we're adding the following predictors to the baseline model, one by one, to determine whether they should be included in the model:
+
+*educ
+*HouseBuilt
+*BaseGasstove
+*BasePets
+*ETS_base
+
+**Included:**
+
+*educ
+*BasePets
+*townabbr
+
+**Not included:**
+
+*HomeBuilt 
+*BaseGasstove
+*ETS_base
+
+
+# educ
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(townabbr), data = CHS_data)%>%summary()
+```
+# Basepets
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(BasePets), data = CHS_data)%>%summary()
+```
+
+# townabbr
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(townabbr) + sulfate, data = CHS_data)%>%summary()
+
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race)  + sulfate, data = CHS_data)%>%summary()
+```
+
+Relevel by "UP" (Upland) in order to get significant p-values for the neighborhoods. This tells the model to use UP as the baseline. 
+
+```{r}
+CHS_data$townabbr <- relevel(factor(CHS_data$townabbr), ref = "UP")
+```
+
+Rebuild the model:
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + townabbr, data = CHS_data)%>%summary()
+```
+
+# HomeBuilt
+
+```{r}
+### Note that gas stoves and year home built seem related
+table(CHS_data$BaseGasstove, CHS_data$HomeBuilt)
+
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(HomeBuilt), data = CHS_data)%>%summary()
+
+```
+
+Relevel the data by "Unknown or Missing" to see if anything becomes significant.
+
+```{r}
+CHS_data$HomeBuilt <- relevel(factor(CHS_data$HomeBuilt), ref = "Unknown or Missing")
+```
+
+Rebuild the model.
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(HomeBuilt), data = CHS_data)%>%summary()
+```
+# BaseGasstove
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(BaseGasstove), data = CHS_data)%>%summary()
+```
+
+# ETS_Base
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(townabbr) + factor(ETS_base), data = CHS_data)%>%summary()
+```
+
+
+# Test Pollutants
+
+*pm25
+*sulfate
+*nitrate
+*ec
+*dust
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(townabbr) + pm25 + nitrate + sulfate, data = CHS_data)%>%summary()
+
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(townabbr) + sulfate, data = CHS_data)%>%summary()
+```
+**Included:**
+
+*educ
+*BasePets
+*townabbr
+
+```{r}
+# CHS_data$SA <- ifelse(CHS_data$townabbr == "SA", "SA", "Other")
+### Pick the "less air polluted" town as a reference
+CHS_data$townabbr <- relevel(factor(CHS_data$townabbr), ref = "SA")
+final_model <- lm(fev1 ~ factor(male) + age + factor(obesity)  + factor(townabbr) + pm25 + factor(educ) + factor(race), data = CHS_data)
+final_model
+```
+```{r}
+CHS_data%>%
+  group_by(townabbr)%>%
+  summarize(mean = mean(fev1, na.rm = TRUE))
+```
+
+
+
+```{r}
+hisp_data <- filter(CHS_data, CHS_data$hisp == "Hispanic")
+nonhisp_data <- filter(CHS_data, CHS_data$hisp == "Non-Hispanic")
+
+nonhisp_data$educ <- relevel(factor(nonhisp_data$educ), ref = "5")
+hisp_data$educ <- relevel(factor(hisp_data$educ), ref = "5")
+
+```
+
+```{r}
+### Pick the "less air polluted" town as a reference
+CHS_data$townabbr <- relevel(factor(CHS_data$townabbr), ref = "SA")
+
+
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(townabbr) + pm25 + factor(educ) , data = hisp_data)%>%summary()
+
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(townabbr) + pm25 + factor(educ) , data = nonhisp_data)%>%summary()
+
+```
+
+1. Ask JP how to tackle "unknown or missing" column in race and hisp columns.
+
+2. Is it okay to have race and ethnicity in the model at the same time?
+3. How to check the assumptions of the model using R?
+
+Next time, check the residuals of the model. 
+
+
+Ethnicity is a modifier. If you don't take into account ethnicity, pm25 is significant. But, the effect is changed once you 
+
+When stratified:
+
+pm25 becomes not significant, but the effect the same. This is probably due to the smaller sample sizes of the stratified models. 
+
+Whatever you found in the main model was replicated in the two stratified models. 
+
+```{r}
+### Predict the fev1 levels from the CHS data using our final model
+predictions <- predict(lm(fev1 ~ factor(male) + age + factor(obesity)  + factor(townabbr) + pm25 + factor(educ) + factor(race), data = CHS_data), CHS_data)
+### Extract the actual fev1 levels from the data set
+actual <- CHS_data$fev1
+### Plot the actual versus predicted values
+plot(predictions ~ actual,
+     xlab = "Actual Fev1 Values",
+     ylab = "Predicted Fev1 Values")
+### Add a line where a "perfect" prediction would be 
+abline(coef = c(0,1), col = "red", lty = 2)
+### Add the line of best fit between actual and predicted values
+abline(lm(predictions ~ actual), col = "blue", lty = 3)
+legend(2050, 4650, legend = c("y = x", "Line of Best Fit"),col = c("red", "blue"), lty = c(2,3))
+```
+
+
+```{r}
+tiff("ModelDiagnostics.tiff", units="in", width=5, height=5, res=500)
+par(mfrow = c(2,2))
+plot(final_model)
+dev.off()
+```
+

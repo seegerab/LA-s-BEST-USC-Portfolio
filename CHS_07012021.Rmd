@@ -1,0 +1,106 @@
+---
+title: "CHS - Logistic Regression"
+author: "Abigail Seeger"
+date: "7/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r warning = FALSE, message = FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+Read in the data. 
+
+```{r}
+CHS_data <- read.csv("~/LA's BEST/CHS_Poster/CHS_cohortE_final_subset.csv")
+```
+
+Convert the necessary columns to be factors.
+
+```{r}
+CHS_data$asthma <- factor(CHS_data$asthma, levels = c(0, 1), labels = c("No Asthma", "Asthma"))
+CHS_data$hisp <- factor(CHS_data$hisp)
+CHS_data$townabbr <- factor(CHS_data$townabbr)
+CHS_data$sex <- factor(CHS_data$male, levels = c(0, 1), labels = c("Female", "Male"))
+CHS_data$educ <- factor(CHS_data$educ, levels = c(1, 2, 3, 4, 5), labels = c("No HS", "HS", "Some College", "4-Year Degree", "Some post-graduate"))
+CHS_data$wheeze <- factor(CHS_data$wheeze, levels = c(0, 1), labels = c("No Wheeze", "Wheeze"))
+CHS_data$obesity <- factor(CHS_data$obesity, levels = c(TRUE, FALSE), labels = c("Obese", "Not Obese"))
+```
+
+Build a model to predict the occurence of asthma.
+
+The baseline model will have the following predictors:
+
+*Sex
+*Age
+*Obesity
+*Race
+
+and 
+
+*Town Abbreviation
+
+Add a note: EC is significant when it is the lone predictors. But, it becomes not-significant when we start adjusting. The association becomes larger, but it becomes less-significant. 
+
+(This is similar with the FEV1 model.)
+
+```{r}
+CHS_data$townabbr <- relevel(factor(CHS_data$townabbr), ref = "SA")
+CHS_remove <- filter(CHS_data, CHS_data$hisp %in% c("Hispanic", "Non-Hispanic"))
+
+### Ask about whether to include wheeze
+final_model <- glm(asthma ~ male + age + obesity + race + townabbr + educ + hisp + ec, family = "binomial", data = CHS_data)
+
+
+
+hisp_data <- CHS_data%>%
+  filter(hisp == "Hispanic")
+
+nonhisp_data <- CHS_data%>%
+  filter(hisp =="Non-Hispanic")
+
+### hisp model
+
+glm(asthma ~ male + age + obesity + race + townabbr + educ + ec, family = "binomial", data = hisp_data)%>%summary()
+
+### non-hisp model
+
+
+glm(asthma ~ male + age + obesity + race + townabbr + educ + ec, family = "binomial", data = nonhisp_data)%>%summary()
+
+```
+
+
+exp : X times as likely
+1 - : X times less/more likely
+
+Explanation for gender and age:
+
+
+
+
+```{r}
+missing_data <- filter(CHS_data, CHS_data$hisp == "Unknown or Missing")
+glm(asthma ~ male + age + obesity + race + townabbr + educ + wheeze + ec, family = "binomial", data = missing_data)%>%summary()
+
+```
+
+```{r}
+CHS_data%>%
+  group_by(hisp)%>%
+  summarize(mean(ec))
+```
+
+```{r}
+final_model <- glm(asthma ~ male + age + obesity + race + townabbr + educ  + ec, family = "binomial", data = CHS_data)
+
+predict(final_model, CHS_data)
+
+```
+

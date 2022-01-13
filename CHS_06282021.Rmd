@@ -1,0 +1,141 @@
+---
+title: "CHS Regression"
+author: "Abigail Seeger"
+date: "6/28/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r warning = FALSE, message = FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+Read in the data. 
+
+```{r}
+CHS_data <- read.csv("~/LA's BEST/CHS_Poster/CHS_cohortE_final_subset.csv")
+```
+
+Based on previous investigations, we have chosen to include the following predictors in the model:
+
+This is the "base line" model with the predictors that are added no matter what. 
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race), data = CHS_data)%>%summary()
+```
+
+Now, try adding the pollutants one by one:
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + nitrate, data = CHS_data)%>%summary()
+
+```
+
+Nitrate is marginally significant. Don't include in the model. 
+
+Now, we're adding the following predictors to the baseline model, one by one, to determine whether they should be included in the model:
+
+*educ
+*HouseBuilt
+*BaseGasstove
+*BasePets
+*ETS_base
+
+**Included:**
+
+*educ
+*BasePets
+*townabbr
+
+**Not included:**
+
+*HomeBuilt 
+*BaseGasstove
+
+# educ
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(educ), data = CHS_data)%>%summary()
+```
+# Basepets
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(BasePets), data = CHS_data)%>%summary()
+```
+
+# townabbr
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(townabbr), data = CHS_data)%>%summary()
+```
+
+Relevel by "UP" (Upland) in order to get significant p-values for the neighborhoods. This tells the model to use UP as the baseline. 
+
+```{r}
+CHS_data$townabbr <- relevel(factor(CHS_data$townabbr), ref = "UP")
+```
+
+Rebuild the model:
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + townabbr, data = CHS_data)%>%summary()
+```
+
+# HomeBuilt
+
+```{r}
+### Note that gas stoves and year home built seem related
+table(CHS_data$BaseGasstove, CHS_data$HomeBuilt)
+
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(HomeBuilt), data = CHS_data)%>%summary()
+
+```
+
+Relevel the data by "Unknown or Missing" to see if anything becomes significant.
+
+```{r}
+CHS_data$HomeBuilt <- relevel(factor(CHS_data$HomeBuilt), ref = "Unknown or Missing")
+```
+
+Rebuild the model.
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(HomeBuilt), data = CHS_data)%>%summary()
+```
+# BaseGasstove
+
+```{r}
+lm(fev1 ~ factor(male) + age + factor(obesity) + factor(race) + factor(BaseGasstove), data = CHS_data)%>%summary()
+```
+
+# Missing Data Investigations
+
+How can we have anova's account for missing values?
+
+Or, can you use a different test? This is a question for JP. 
+
+```{r}
+apply(apply(CHS_data, 2, is.na), 2, sum)
+dim(na.omit(CHS_data))
+```
+
+# Notes
+
+Possible reasons for BasePets being significant:
+
+Consider pets and neighborhood
+
+Regardless of where you live, sulfate is correlated with fev1. And, different neighborhoods may have different pollutant levels. It could be that sulfate and town are highly correlated. (I think we showed this previously?)
+
+Make sure to check the residuals with the LINE assumptions of the final models.
+
+For the second model, keep everything the same but include the ethnicity predictor. 
+
+Next time, look at the other pollutants. 

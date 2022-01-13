@@ -1,0 +1,152 @@
+---
+title: "CHS Spatial"
+author: "Abigail Seeger"
+date: "7/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# {.tabset}  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup {.tabset}
+
+### Packages and Data
+
+Install the following packages and set the directory where data are located:
+
+```{r pkgs, message=F, warning=F}
+library(dplyr)
+library(ggplot2)
+library(leaflet) # plotting spatial data
+library(htmlwidgets) # to save html maps that are interactive
+library(sf) # handle simple features objects
+library(ggmap) # for querying google API for geocoding
+
+```
+
+
+Now let's import the CHS data (which includes latitude and longitude coordinates and pollutants and outcomes) and map them.
+
+```{r pmdat}
+# pm25 = read.csv("~/LA's BEST/LAsBEST/google-drive/week03/3Thurs/pm25_ca_2018.csv")
+# pm25.sites = read.csv("~/LA's BEST/LAsBEST/google-drive/week03/3Thurs/pm25_sites.csv")
+# pm25 %>% head()
+# # pm25.sites %>% head()
+
+CHS_data <- read.csv("~/LA's BEST/CHS_Poster/CHS_cohortE_final_subset.csv")
+
+
+```
+
+Visualize the sulfate levels for the children in the study. 
+
+```{r pm-maps}
+sulfate.pal = colorNumeric(c('darkblue', "blue",'purple','red'),
+                        domain=CHS_data$sulfate)
+CHS_data %>% 
+  st_as_sf(coords=c('longitude','latitude'), crs=4326) %>% 
+  leaflet() %>% 
+  addProviderTiles('CartoDB.Positron') %>% 
+  addCircles(label=~paste0(pm25, ' ug/m3'), color=~sulfate.pal(sulfate),
+             opacity=1, fillOpacity=1, radius=500) %>%
+  addLegend('bottomleft', pal=sulfate.pal, values=CHS_data$sulfate,
+            title='Sulfate (ug/m3)', opacity=1)
+
+```
+
+Now, look at BMI. (Melissa created the "obese" map, which basically shares the same information.)
+
+```{r pm-maps}
+asthma.pal = colorFactor(c('green','red'),
+                        domain=CHS_data$asthma)
+CHS_data %>% 
+  st_as_sf(coords=c('longitude','latitude'), crs=4326) %>% 
+  leaflet() %>% 
+  addProviderTiles('OpenStreetMap') %>% 
+  addCircles(label=~paste0(asthma), color=~asthma.pal(asthma),
+             opacity=0.5, fillOpacity=0.5, radius=100) %>%
+  addLegend('bottomleft', pal=asthma.pal, values=CHS_data$asthma,
+            title='Asthma', opacity=0.5)
+
+```
+
+
+
+```{r}
+pm25.pal = colorNumeric(c('darkblue','blue','purple', "red", "red"),
+                        domain=CHS_data$pm25)
+fev1.pal = colorNumeric(c('darkblue','blue','purple', "red", "red"),
+                        domain=CHS_data$fev)
+dust.pal = colorNumeric(c('darkblue','blue','purple', "red", "red"),
+                        domain=CHS_data$dust)
+sulfate.pal = colorNumeric(c('darkblue','blue','purple', "red", "red"),
+                        domain=CHS_data$sulfate)
+
+map <- leaflet(CHS_data) %>%
+  # Base groups
+  addTiles(group = "OSM (default)") %>%
+  addProviderTiles(providers$Stamen.Toner, group = "CartoDB.Positron") %>%
+  addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
+  # Overlay groups
+  addCircles(color=~pm25.pal(pm25)) %>%
+  addCircles(color=~fev1.pal(fev1)) %>%
+  addCircles(color=~dust.pal(dust)) %>%
+  addCircles(color=~sulfate.pal(sulfate)) %>%
+  # Layers control
+  addLayersControl(
+    baseGroups = c("OSM", "Carto.DB", "Terrain"),
+    overlayGroups = c("Pm2.5", "Fev1", "Dust", "Sulfate"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+map
+
+```
+
+
+
+```{r}
+CHS_data$educ <- factor(CHS_data$educ,
+                        levels = c(1, 2, 3, 4, 5),
+                        labels = c("Didn't graduate high school",
+                                   "Graduated high school",
+                                   "Some college",
+                                   "Graduated college",
+                                   "Some graduate level"))
+
+
+CHS_data$educ2 <- ifelse(CHS_data$educ %in% c("Graduated college", "Some graduate level", "Some College"), "At least some college", "At most graduated high school")
+```
+
+Look at education:
+
+```{r pm-maps}
+education.pal = colorFactor(c('red', "orange",'yellow','green', "blue"),
+                        domain=CHS_data$educ)
+CHS_data %>% 
+  st_as_sf(coords=c('longitude','latitude'), crs=4326) %>% 
+  leaflet() %>% 
+  addProviderTiles('CartoDB.Positron') %>% 
+  addCircles(label=~educ, color=~education.pal(educ),
+             opacity=1, fillOpacity=1, radius=500) %>%
+  addLegend('bottomleft', pal=education.pal, values=CHS_data$educ,
+            title='Education', opacity=1)
+
+education.pal2 = colorFactor(c('blue', "red"),
+                        domain=CHS_data$educ2)
+CHS_data %>% 
+  st_as_sf(coords=c('longitude','latitude'), crs=4326) %>% 
+  leaflet() %>% 
+  addProviderTiles('CartoDB.Positron') %>% 
+  addCircles(label=~educ2, color=~education.pal2(educ2),
+             opacity=1, fillOpacity=1, radius=50) %>%
+  addLegend('bottomleft', pal=education.pal2, values=CHS_data$educ2,
+            title='Education', opacity=1)
+
+```

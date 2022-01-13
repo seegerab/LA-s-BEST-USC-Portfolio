@@ -1,0 +1,117 @@
+---
+title: "CHS Regression"
+author: "Abigail Seeger"
+date: "6/24/2021"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r warning = FALSE, message = FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+CHS_data <- read.csv("~/LA's BEST/CHS_Poster/CHS_cohortE_final_subset.csv")
+```
+
+We are looking at the relationship between asthma and FEV1 for the entire dataset and by ethnicity.
+
+First, build a simple model where ethnicity is the predictor variable and fev1 is the response variable. 
+
+```{r}
+### Convert the hisp column to a factor
+CHS_data$hisp <- factor(CHS_data$hisp)
+### Build a model with hisp as the predictor
+lm(fev1 ~ townabbr, data = CHS_data)%>%
+  summary()
+```
+
+None of the p-value for the slopes are significant. The p-value from the F-test is not significant. 
+
+Here are some predictors that I suspect may be confounding:
+
+* Pollutants
+* Town Abbr
+
+So, I'll create a subset of each town, and then build a model for each subset. 
+
+```{r}
+SA_subset <- CHS_data%>%filter(townabbr == "SA")
+SD_subset <- CHS_data%>%filter(townabbr == "SD")
+RV_subset <- CHS_data%>%filter(townabbr == "RV")
+GL_subset <- CHS_data%>%filter(townabbr == "GL")
+ML_subset <- CHS_data%>%filter(townabbr == "ML")
+UP_subset <- CHS_data%>%filter(townabbr == "UP")
+AN_subset <- CHS_data%>%filter(townabbr == "AN")
+LB_subset <- CHS_data%>%filter(townabbr == "LB")
+
+SA_model <- (lm(fev1 ~ hisp, data = SA_subset)%>%summary())
+SD_model <- (lm(fev1 ~ hisp, data = SD_subset)%>%summary())
+RV_model <- (lm(fev1 ~ hisp, data = RV_subset)%>%summary())
+GL_model <- (lm(fev1 ~ hisp, data = GL_subset)%>%summary())
+ML_model <- (lm(fev1 ~ hisp, data = ML_subset)%>%summary())
+UP_model <- (lm(fev1 ~ hisp, data = UP_subset)%>%summary())
+AN_model <- (lm(fev1 ~ hisp, data = AN_subset)%>%summary())
+###AN_model is significant!! 
+LB_model <- (lm(fev1 ~ hisp, data = LB_subset)%>%summary())
+###LB_model is significant!! 
+```
+
+Let's look at the AN_model further.
+
+
+
+**Descriptive statistics:**
+
+```{r}
+par(mfrow = c(2,2))
+plot(fev1 ~ age, data = CHS_data)
+plot(fev1 ~ weight, data = CHS_data)
+plot(fev1 ~ bmi, data = CHS_data)
+plot(fev1 ~ height, data = CHS_data)
+
+```
+
+```{r}
+# CHS_data$College <- ifelse(CHS_data$educ %in% c(1,2,3), "No College", "Some College")
+
+CHS_data %>%
+  ggplot(aes(x=age, y=fev1, group=as.factor(race), color=as.factor(race))) +
+  geom_point() +
+  geom_smooth(method="glm")
+# 
+lm(fev1 ~ factor(race) + age + factor(obesity) + factor(male), data = CHS_data)%>%summary()
+```
+
+
+```{r}
+boxplot(fev1~race, data = CHS_data)
+```
+
+It doesn't matter what your BMI is. It matters if you're obese. (Use the obesity column in the model. Include 
+
+Don't include height + weight and bmi, because they're so highly correlated! 
+
+There's a trend in parental education, so include in the model. 
+
+Obesity captures BMI, height, and weight. 
+
+**Potential Issues:**
+
+The majority of the sample is caucasian. We should acknowledge this. 
+
+
+
+
+
+
